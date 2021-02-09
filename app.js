@@ -4,6 +4,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const _ = require("lodash");
 
 const app = express();
 
@@ -20,6 +21,15 @@ const itemsSchema = {
 
 const Item = mongoose.model("Item", itemsSchema);
 
+const listSchema = {
+  name: String,
+  items: [itemsSchema]
+};
+
+const List = mongoose.model("List", listSchema);
+
+
+
 const item1 = new Item({
   name: "Welcome1"
 });
@@ -35,22 +45,29 @@ const item3 = new Item({
 
 const defaultItems = [item1,item2,item3];
 
-Item.insertMany(defaultItems, function(error){
-  if(error){
-    console.log(error);
-  }else{
-    console.log("exit");
-  }
-})
+
 
 app.get("/", function(req, res) {
 
+  Item.find({}, function(error, foundItems){
+    if (foundItems.length === 0){
+      Item.insertMany(defaultItems, function(error){
+        if(error){
+          console.log(error);
+        }else{
+          console.log("exit");
+        }
+      });
+      res.redirect("/");
+    }else{
+      res.render('list', {
+        listTitle: "Today",
+        newItems: foundItems
+      });
+    }
 
-
-  res.render('list', {
-    listTitle: "Today",
-    newItems: items
   });
+
 });
 
 app.get("/work", function(req, res){
@@ -62,21 +79,69 @@ app.get("/work", function(req, res){
 
 app.post("/", function(req, res){
   console.log(req.body.list);
-  let item = req.body.newItem;
-  if(req.body.list === "Work"){
-    workItems.push(item);
-    res.redirect("/work");
-  }else{
-    items.push(item);
-    res.redirect("/");
-  }
-})
+  const itemName = req.body.newItem;
+  const listName = req.body.list;
 
-app.post("/work", function(req, res){
-  let item = req.body.newItem;
-  workItems.push(item);
-  res.redirect("/work");
-})
+  const item = new Item({
+    name: itemName
+  });
+
+  if (listName == "Today"){
+    item.save();
+    res.redirect("/");
+  }else{
+    List.findOne({name: listName}, function(error, foundList){
+      foundList.items.push(item);
+      foundList.save();
+      res.redirect("/" + listName);
+    });
+  }
+});
+
+app.get("/:customListName", function(req, res){
+  const customListName = _.capitalize(req.params.customListName);
+
+  List.findOne({name: customListName}, function(error, foundList){
+    if (!error){
+      if (!foundList){
+
+        const list = new List({
+          name: customListName,
+          items: defaultItems
+        });
+        list.save();
+        res.redirect("/" + customListName);
+      }else{
+        res.render("list", {listTitle: foundList.name, newItems: foundList.items});
+      }
+    }
+  });
+
+});
+
+app.post("/delete", function(req, res){
+  const checkedBox = req.body.checkbox;
+  const listName = req.body.listName;
+
+  if (listName == "Today"){
+    Item.findByIdAndRemove(checkedBox, function(error){
+      if (!error){
+        console.log("Some Error");
+        res.redirect("/");
+      }
+    });
+  }else{
+    List.findOneAndUpdate(
+      {name: listName},
+      {$pull:
+        {items: {_id: checkedBox}}
+      },
+      function(error, foundList){
+        if (!error) res.redirect("/" + listName);
+      }
+    );
+  }
+});
 
 app.listen(3000, function() {
   console.log("Server started on port 3000");

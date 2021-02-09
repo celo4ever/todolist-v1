@@ -4,19 +4,19 @@ const express = require("express");
 const bodyParser = require("body-parser");
 
 const app = express();
-var items = [];
+let items = [];
 
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
-
+app.use(express.static("public"));
 
 app.get("/", function(req, res) {
-  var options = { weekday: 'long',
+  let options = { weekday: 'long',
                   month: 'long',
                   day: 'numeric' };
 
-  var today = new Date();
-  var day = today.toLocaleDateString("en-ES",options);
+  let today = new Date();
+  let day = today.toLocaleDateString("en-ES",options);
 
   res.render('list', {
     kindOfDay: day,
@@ -26,7 +26,7 @@ app.get("/", function(req, res) {
 
 app.post("/", function(req, res){
   console.log(req.body.newItem);
-  var item = req.body.newItem;
+  let item = req.body.newItem;
   items.push(item);
 
   res.redirect("/");

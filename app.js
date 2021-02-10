@@ -13,7 +13,7 @@ app.set('view engine', 'ejs'); //EJS amb carpeta Views!
 app.use(bodyParser.urlencoded({extended: true})); //Per usar bodyParser
 app.use(express.static("public"));// per accedir a la carpeta public amb els estils
 
-mongoose.connect("mongodb://localhost:27017/TodoList", {useNewUrlParser: true}); //connexió amb mongoose
+mongoose.connect("mongodb+srv://admin:admin123@cluster0.31hhh.mongodb.net/TodoList", {useNewUrlParser: true}); //connexió amb mongoose
 
 const itemsSchema = {
     name: String

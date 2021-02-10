@@ -2,18 +2,18 @@
 
 // Requires
 const express = require("express");
-const bodyParser = require("body-parser");
-const mongoose = require("mongoose");
-const _ = require("lodash");
+const bodyParser = require("body-parser"); //Per pillar parametres
+const mongoose = require("mongoose"); // Data Base
+const _ = require("lodash"); // per fer mayuscules
 
 const app = express();
 
 
-app.set('view engine', 'ejs');
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(express.static("public"));
+app.set('view engine', 'ejs'); //EJS amb carpeta Views!
+app.use(bodyParser.urlencoded({extended: true})); //Per usar bodyParser
+app.use(express.static("public"));// per accedir a la carpeta public amb els estils
 
-mongoose.connect("mongodb://localhost:27017/TodoList", {useNewUrlParser: true});
+mongoose.connect("mongodb://localhost:27017/TodoList", {useNewUrlParser: true}); //connexió amb mongoose
 
 const itemsSchema = {
     name: String
@@ -29,56 +29,20 @@ const listSchema = {
 const List = mongoose.model("List", listSchema);
 
 
-
-const item1 = new Item({
-  name: "Welcome1"
-});
-
-const item2 = new Item({
-  name: "Welcome2"
-});
-
-const item3 = new Item({
-  name: "Welcome3"
-});
-
-
-const defaultItems = [item1,item2,item3];
-
-
-
 app.get("/", function(req, res) {
 
   Item.find({}, function(error, foundItems){
-    if (foundItems.length === 0){
-      Item.insertMany(defaultItems, function(error){
-        if(error){
-          console.log(error);
-        }else{
-          console.log("exit");
-        }
-      });
-      res.redirect("/");
-    }else{
+    console.log(foundItems);
       res.render('list', {
         listTitle: "Today",
         newItems: foundItems
       });
-    }
-
   });
 
 });
 
-app.get("/work", function(req, res){
-  res.render('list', {
-    listTitle: "Work List",
-    newItems: workItems
-  });
-})
-
 app.post("/", function(req, res){
-  console.log(req.body.list);
+
   const itemName = req.body.newItem;
   const listName = req.body.list;
 
@@ -87,13 +51,20 @@ app.post("/", function(req, res){
   });
 
   if (listName == "Today"){
-    item.save();
-    res.redirect("/");
+    item.save(function(error){
+      if (!error){
+        res.redirect("/");
+      }
+    });
   }else{
     List.findOne({name: listName}, function(error, foundList){
       foundList.items.push(item);
-      foundList.save();
-      res.redirect("/" + listName);
+      foundList.save(function(error){
+        if (!error){
+          res.redirect("/" + listName);
+        }
+      });
+
     });
   }
 });
@@ -104,13 +75,13 @@ app.get("/:customListName", function(req, res){
   List.findOne({name: customListName}, function(error, foundList){
     if (!error){
       if (!foundList){
-
         const list = new List({
           name: customListName,
-          items: defaultItems
+          items: []
         });
-        list.save();
-        res.redirect("/" + customListName);
+        list.save(function(error){
+          res.redirect("/" + customListName);
+        });
       }else{
         res.render("list", {listTitle: foundList.name, newItems: foundList.items});
       }
